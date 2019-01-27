@@ -59,41 +59,6 @@ jobs:
         apt:
           packages: ["wine"]     
 
-    # Windows Tiles x64 with deployment no lua no astyle
-    - env: COMPILER='g++' LDFLAGS='-static-libgcc -static-libstdc++' MXE_TARGET='i686-w64-mingw32.static' NATIVE="win64" WINE='wine' TILES=1 SOUND=1 LOCALIZE=1 LANGUAGES=all DEPLOY=1 BUILD_TYPE="win-tiles64"
-      compiler: gcc
-      addons: &gcc
-        apt:
-          packages: ["wine"]    
-
-    # Windows Tiles x32 with deployment no lua
-    - env: COMPILER='g++' LDFLAGS='-static-libgcc -static-libstdc++' MXE_TARGET='i686-w64-mingw32.static' NATIVE="win32" WINE='wine' TILES=1 SOUND=1 LOCALIZE=1 LANGUAGES=all DEPLOY=1 BUILD_TYPE="win-tiles32"
-      compiler: gcc
-      addons: &gcc
-        apt:
-          packages: ["wine", "astyle"]     
-
-    # Windows Tiles x64 with deployment no lua
-    - env: COMPILER='g++' LDFLAGS='-static-libgcc -static-libstdc++' MXE_TARGET='i686-w64-mingw32.static' NATIVE="win64" WINE='wine' TILES=1 SOUND=1 LOCALIZE=1 LANGUAGES=all DEPLOY=1 BUILD_TYPE="win-tiles64"
-      compiler: gcc
-      addons: &gcc
-        apt:
-          packages: ["wine", "astyle"]               
-
-    # Windows Tiles x32 with deployment
-    - env: COMPILER='g++' LDFLAGS='-static-libgcc -static-libstdc++' MXE_TARGET='i686-w64-mingw32.static' NATIVE="win32" WINE='wine' TILES=1 SOUND=1 LUA=1 LOCALIZE=1 LANGUAGES=all DEPLOY=1 BUILD_TYPE="win-tiles32"
-      compiler: gcc
-      addons: &gcc
-        apt:
-          packages: ["wine", "lua5.2", "liblua5.2-dev", "astyle"]     
-
-    # Windows Tiles x64 with deployment
-    - env: COMPILER='g++' LDFLAGS='-static-libgcc -static-libstdc++' MXE_TARGET='i686-w64-mingw32.static' NATIVE="win64" WINE='wine' TILES=1 SOUND=1 LUA=1 LOCALIZE=1 LANGUAGES=all DEPLOY=1 BUILD_TYPE="win-tiles64"
-      compiler: gcc
-      addons: &gcc
-        apt:
-          packages: ["wine", "lua5.2", "liblua5.2-dev", "astyle"]     
-
     # CMake Clang 6.0 Tiles
     - env: CLANG=clang++-6.0 TILES=1 SOUND=1 CXXFLAGS=-Wno-error=unused-command-line-argument CMAKE=1
       dist: trusty
@@ -221,6 +186,9 @@ deploy:
   api_key:
     secure: EfssdhGJxeYf8vkx1aJf4YPGdznXc4erPwQnQTqplsjpRDLclScgFAxQ+eF37feUeHTHlXYZ5h41VdmIA8eKCaoxCHVAYSGHk1au8m8KUf4zEZTEmwkWf/NXwrkjnmEr1zphf1KADkEnLmCe6emWDzT/THGAPgulB3R9mz/dgysP1IikTLghPCGc+QO3smieBqu7cecXPBW9UsdEQRtXtWOu8dakLw2XbsfaqfX18Pb5clfYYGe7XwjURbfKDkSAWqm2LD4NPASSOFKUGLf71SCUVVeIuzlbpB85+k29M883M36c0RjNE+JRfVhJcBdsXvuHbNzSrM6yg3/HQq+GegG/4ZjA1VmLH6QqGGvfml6mZMxL8dUKnOWauodUyW8BCcto1k9LLLzOchj8ZZA5V3z2wE3N5vErSHlOvpo2K2LKW+2qovA/eUANt91R/0LUjoymEvudC7Y4PwvrGNXrC/eRRwEJJN3rLVam6KbQ5XUj7ieG7FWpmnWPujiUo+nbr7FoI66c8Z4qkwKvCXPoABP/tG90KEZMTh2blNfwvM/lBsDCMER4dtxGto4nHBaR8CYGK9k2nRKR9Blsr7QtTjvjU6IcQzD7vm0IjAnqKvQoab1dgGf10Nt+lsN3hKARsa2ZySxbS1sEsJ1+v0SW+MjMfvYZjhRdPB2JlxbL7l8=
   file: "${RELEASE_PKG_FILES}"
+  skip_cleanup: true
   on:
     repo: TGITS-Solutions/Cataclysm-DDA
     branch: dev
+    tags: true
+    condition: $DEPLOY = '1'
