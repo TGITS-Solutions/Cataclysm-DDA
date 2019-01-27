@@ -27,6 +27,7 @@ os: linux
 branches:
   only:
   - dev
+  - /v\d+\.\d+[a-z]/
 
 jobs:
   include:
@@ -191,4 +192,5 @@ deploy:
     repo: TGITS-Solutions/Cataclysm-DDA
     branch: dev
     tags: true
+    all_branches: true
     condition: $DEPLOY = '1'
