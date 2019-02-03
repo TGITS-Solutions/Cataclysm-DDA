@@ -54,7 +54,7 @@ jobs:
           packages: ["wine"]
 
     # Windows Tiles x32 with deployment no lua no astyle
-    - env: COMPILER='g++' LDFLAGS='-static-libgcc -static-libstdc++' MXE_TARGET='i686-w64-mingw32.static' NATIVE="win32" WINE='wine' TILES=1 SOUND=1 LOCALIZE=1 LANGUAGES=all DEPLOY=1 BUILD_TYPE="win-tiles32"
+    - env: COMPILER='g++' LDFLAGS='-static-libgcc -static-libstdc++' MXE_TARGET='i686-w64-mingw32.static' NATIVE="win32" WINE='wine' TILES=1 SOUND=1 LOCALIZE=1 LANGUAGES=all RELEASE=1 DEPLOY=1 BUILD_TYPE="win-tiles32"
       compiler: gcc
       addons: &gcc
         apt:
