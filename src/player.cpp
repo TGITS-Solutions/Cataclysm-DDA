@@ -1030,7 +1030,7 @@ void player::update_bodytemp()
     }
     const oter_id &cur_om_ter = overmap_buffer.ter( global_omt_location() );
     bool sheltered = g->is_sheltered( pos() );
-    int total_windpower = get_local_windpower( weather.windpower + vehwindspeed, cur_om_ter, sheltered );
+    double total_windpower = get_local_windpower( weather.windpower + vehwindspeed, cur_om_ter, pos(), weather.winddirection, sheltered );
 
     // Let's cache this not to check it num_bp times
     const bool has_bark = has_trait( trait_BARK );
@@ -6640,8 +6640,8 @@ void player::apply_wetness_morale( int temperature )
             morale_effect = -1;
         }
     }
-
-    add_morale( MORALE_WET, morale_effect, total_morale, 1_minutes, 1_minutes, true );
+    // 11_turns because decay is applied in 10_turn increments
+    add_morale( MORALE_WET, morale_effect, total_morale, 11_turns, 11_turns, true );
 }
 
 void player::update_body_wetness( const w_point &weather )
@@ -6737,6 +6737,11 @@ void player::rem_morale(morale_type type, const itype* item_type)
     morale->remove( type, item_type );
 }
 
+void player::clear_morale()
+{
+    morale->clear();
+}
+
 bool player::has_morale_to_read() const
 {
     return get_morale_level() >= -40;
@@ -6774,6 +6779,10 @@ void player::check_and_recover_morale()
         *morale = player_morale( test_morale ); // Recover consistency
         add_msg( m_debug, "%s morale was recovered.", disp_name( true ).c_str() );
     }
+}
+
+void player::on_worn_item_transform( const item &it ) {
+	morale->on_worn_item_transform( it );
 }
 
 void player::process_active_items()
@@ -6959,7 +6968,7 @@ std::vector<item *> player::inv_dump()
     return ret;
 }
 
-std::list<item> player::use_amount(itype_id it, int _quantity)
+std::list<item> player::use_amount( itype_id it, int _quantity, const std::function<bool( const item & )> &filter )
 {
     std::list<item> ret;
     long quantity = _quantity; // Don't want to change the function signature right now
@@ -6967,7 +6976,7 @@ std::list<item> player::use_amount(itype_id it, int _quantity)
         remove_weapon();
     }
     for( auto a = worn.begin(); a != worn.end() && quantity > 0; ) {
-        if( a->use_amount( it, quantity, ret ) ) {
+        if( a->use_amount( it, quantity, ret, filter ) ) {
             a->on_takeoff( *this );
             a = worn.erase( a );
         } else {
@@ -6977,7 +6986,7 @@ std::list<item> player::use_amount(itype_id it, int _quantity)
     if (quantity <= 0) {
         return ret;
     }
-    std::list<item> tmp = inv.use_amount(it, quantity);
+    std::list<item> tmp = inv.use_amount( it, quantity, filter );
     ret.splice(ret.end(), tmp);
     return ret;
 }
@@ -7153,12 +7162,12 @@ int player::amount_worn(const itype_id &id) const
     return amount;
 }
 
-bool player::has_charges(const itype_id &it, long quantity) const
+bool player::has_charges(const itype_id &it, long quantity, const std::function<bool( const item & )> &filter ) const
 {
     if (it == "fire" || it == "apparatus") {
         return has_fire(quantity);
     }
-    return charges_of( it, quantity ) == quantity;
+    return charges_of( it, quantity, filter ) == quantity;
 }
 
 int  player::leak_level( const std::string &flag ) const
@@ -11702,6 +11711,9 @@ void player::burn_move_stamina( int moves )
     // 7/turn walking
     // 20/turn running
     int burn_ratio = 7;
+    if( g->u.has_active_bionic( bionic_id( "bio_torsionratchet" ) ) ) {
+        burn_ratio = burn_ratio * 2 - 3;
+    }
     burn_ratio += overburden_percentage;
     if( move_mode == "run" ) {
         burn_ratio = burn_ratio * 3 - 1;
@@ -11819,6 +11831,11 @@ size_t player::max_memorized_tiles() const
         }
     }
     return current_map_memory_capacity;
+}
+
+void player::clear_memorized_tile( const tripoint &pos )
+{
+    player_map_memory.clear_memorized_tile( pos );
 }
 
 bool player::sees( const tripoint &t, bool ) const

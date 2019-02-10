@@ -768,7 +768,8 @@ void iexamine::rubble(player &p, const tripoint &examp)
 void iexamine::crate( player &p, const tripoint &examp )
 {
     auto prying_items = p.crafting_inventory().items_with( []( const item & it ) -> bool {
-        return it.has_quality( quality_id( "PRY" ), 1 );
+        item temporary_item( it.type );
+        return temporary_item.has_quality( quality_id( "PRY" ), 1 );
     } );
 
     if( prying_items.size() == 0) {
@@ -1152,7 +1153,8 @@ void iexamine::gunsafe_el(player &p, const tripoint &examp)
  */
 void iexamine::locked_object( player &p, const tripoint &examp) {
     auto prying_items = p.crafting_inventory().items_with( []( const item & it ) -> bool {
-        return it.has_quality( quality_id( "PRY" ), 2 );
+        item temporary_item( it.type );
+        return temporary_item.has_quality( quality_id( "PRY" ), 2 );
     } );
 
     if ( prying_items.size() == 0) {
