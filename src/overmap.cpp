@@ -2506,6 +2506,7 @@ bool overmap::build_lab( int x, int y, int z, int s, std::vector<point> *lab_tra
     const oter_id labt_finale( labt.id().str() + "_finale" );
     const oter_id labt_ants( "ants_lab" );
     const oter_id labt_ants_stairs( "ants_lab_stairs" );
+    const bool endgame = prefix == "endgame_";
 
     ter( x, y, z ) = labt;
     generated_lab.push_back( point( x, y ) );

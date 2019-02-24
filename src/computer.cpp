@@ -1260,6 +1260,24 @@ SHORTLY. TO ENSURE YOUR SAFETY PLEASE FOLLOW THE BELOW STEPS. \n\
             query_any( _( "Press any key..." ) );
             break;
 
+        case COMPACT_CLOSE_PORTAL:
+            bool found = false;
+            for( int x = 0; x < SEEX * MAPSIZE_X; x++ ) {
+                for( int y = 0; y < SEEY * MAPSIZE_Y; y++ ) {
+                    tripoint p{ x, y, g->u.posz() };
+                    if( g->m.ter( p ) == ter_id( "t_portal_endgame" ) ) {
+                        found = true;
+                        g->m.ter_set( p, t_thconc_floor );
+                    }
+                }
+            }
+            if( found ) {
+                g->victory();
+            } else {
+                print_line( _( "Error: No active portal system within range" ) );
+            }
+            break;
+
     } // switch (action)
 }
 
