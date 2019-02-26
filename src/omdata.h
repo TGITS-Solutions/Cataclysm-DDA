@@ -386,6 +386,7 @@ void reset();
 const std::vector<overmap_special> &get_all();
 
 overmap_special_batch get_default_batch( const point &origin );
+overmap_special_batch get_mandatory_batch( const point &origin );
 /**
  * Generates a simple special from a building id.
  */

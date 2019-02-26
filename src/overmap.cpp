@@ -378,6 +378,22 @@ overmap_special_batch overmap_specials::get_default_batch( const point &origin )
     return overmap_special_batch( origin, res );
 }
 
+overmap_special_batch overmap_specials::get_mandatory_batch( const point &origin )
+{
+    std::vector<const overmap_special *> res;
+    if( origin.x != 0 || origin.y != 0 ) {
+        return overmap_special_batch( origin, res );
+    }
+
+    for( const overmap_special &elem : specials.get_all() ) {
+        if( elem.flags.count( "ENDGAME" ) > 0 ) {
+            res.push_back( &elem );
+        }
+    }
+
+    return overmap_special_batch( origin, res );
+}
+
 bool is_river( const oter_id &ter )
 {
     return ter->is_river();
@@ -2506,7 +2522,6 @@ bool overmap::build_lab( int x, int y, int z, int s, std::vector<point> *lab_tra
     const oter_id labt_finale( labt.id().str() + "_finale" );
     const oter_id labt_ants( "ants_lab" );
     const oter_id labt_ants_stairs( "ants_lab_stairs" );
-    const bool endgame = prefix == "endgame_";
 
     ter( x, y, z ) = labt;
     generated_lab.push_back( point( x, y ) );
@@ -3577,13 +3592,18 @@ void overmap::place_specials( overmap_special_batch &enabled_specials )
         }
         ++iter;
     }
+
+    overmap_special_batch endgame = overmap_specials::get_mandatory_batch( point( loc ) );
     // Bail out early if we have nothing to place.
-    if( enabled_specials.empty() ) {
+    if( endgame.empty() && enabled_specials.empty() ) {
         return;
     }
     om_special_sectors sectors = get_sectors( OMSPEC_FREQ );
 
-    // First, place the mandatory specials to ensure that all minimum instance
+    // Endgame content goes first - it's more mandatory (we can't push it away from (0,0))
+    place_specials_pass( endgame, sectors, false, false );
+
+    // Place the mandatory specials to ensure that all minimum instance
     // counts are met.
     place_specials_pass( enabled_specials, sectors, false, false );
 

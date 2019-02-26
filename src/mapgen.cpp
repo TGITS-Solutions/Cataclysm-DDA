@@ -3766,7 +3766,7 @@ ___DEEE|.R.|...,,...|sss\n",
         ice_lab = is_ot_type( "ice_lab", terrain_type );
         central_lab = is_ot_type( "central_lab", terrain_type );
         tower_lab = is_ot_type( "tower_lab", terrain_type );
-        endgame_lab = is_ot_type( "endgame_lab_finale", terrain_type );
+        bool endgame_lab = is_ot_type( "endgame_lab_finale", terrain_type );
 
         if( ice_lab ) {
             int temperature = -20 + 30 * zlevel;
