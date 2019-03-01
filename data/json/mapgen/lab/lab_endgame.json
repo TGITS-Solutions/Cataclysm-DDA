@@ -35,11 +35,7 @@
         "........................"
       ],
       "palettes": [ "lab_palette", "lab_loot_research" ],
-      "terrain": {
-        "6": "t_console",
-        "*": "t_portal_endgame",
-        "|": "t_wall_metal"
-      },
+      "terrain": { "6": "t_console", "*": "t_portal_endgame", "|": "t_wall_metal" },
       "computers": {
         "6": {
           "name": "Portal Control",
@@ -47,9 +43,7 @@
           "options": [ { "name": "Close portal", "action": "close_portal", "security": 0 } ]
         }
       },
-      "place_monster": [
-        { "monster": "mon_hunting_horror", "x": [0, 21], "y": [0, 21], "repeat": 4 }
-      ]
+      "place_monster": [ { "monster": "mon_hunting_horror", "x": [ 0, 21 ], "y": [ 0, 21 ], "repeat": 4 } ]
     }
   }
 ]
