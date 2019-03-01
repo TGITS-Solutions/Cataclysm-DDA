@@ -1905,6 +1905,15 @@
   },
   {
     "type": "overmap_terrain",
+    "id": "endgame_lab_finale",
+    "name": "portal chamber",
+    "sym": 76,
+    "color": "red",
+    "see_cost": 5,
+    "flags": [ "NO_ROTATE" ]
+  },
+  {
+    "type": "overmap_terrain",
     "id": "bunker",
     "name": "military bunker",
     "sym": 66,

@@ -1705,7 +1705,8 @@ computer_action computer_action_from_string( const std::string &str )
             { "srcf_3_mess", COMPACT_SRCF_3_MESS },
             { "srcf_seal_order", COMPACT_SRCF_SEAL_ORDER },
             { "srcf_seal", COMPACT_SRCF_SEAL },
-            { "srcf_elevator", COMPACT_SRCF_ELEVATOR }
+            { "srcf_elevator", COMPACT_SRCF_ELEVATOR },
+            { "close_portal", COMPACT_CLOSE_PORTAL }
         }
     };
 

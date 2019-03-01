@@ -3766,7 +3766,7 @@ ___DEEE|.R.|...,,...|sss\n",
         ice_lab = is_ot_type( "ice_lab", terrain_type );
         central_lab = is_ot_type( "central_lab", terrain_type );
         tower_lab = is_ot_type( "tower_lab", terrain_type );
-        bool endgame_lab = is_ot_type( "endgame_lab_finale", terrain_type );
+        bool endgame_lab = terrain_type == "endgame_lab_finale";
 
         if( ice_lab ) {
             int temperature = -20 + 30 * zlevel;
@@ -3778,7 +3778,7 @@ ___DEEE|.R.|...,,...|sss\n",
         bw = is_ot_subtype( "lab", t_south ) ? 1 : 2;
         lw = is_ot_subtype( "lab", t_west ) ? 0 : 2;
 
-        const std::string function_key = "lab_finale_1level";
+        const std::string function_key = endgame_lab ? "endgame_lab_finale" : "lab_finale_1level";
         const auto fmapit = oter_mapgen.find( function_key );
         const int hardcoded_finale_map_weight = endgame_lab ? 0 : 500; // weight of all hardcoded maps.
         bool use_hardcoded_finale_map = false;

@@ -3,7 +3,7 @@
     "//": "autodoc operating theatre",
     "type": "mapgen",
     "method": "json",
-    "om_terrain": [ "lab_finale_1level" ],
+    "om_terrain": [ "endgame_lab_finale" ],
     "weight": 25,
     "object": {
       "rotation": [ 0, 3 ],
@@ -43,8 +43,8 @@
         "6": {
           "name": "Portal Control",
           "security": 0,
-          "options": [ { "name": "", "action": "open", "security": 0 } ]
-        },
+          "options": [ { "name": "Close portal", "action": "close_portal", "security": 0 } ]
+        }
       },
       "place_monster": [
         { "monster": "mon_hunting_horror", "x": [0, 21], "y": [0, 21], "repeat": 4 }

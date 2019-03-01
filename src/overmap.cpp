@@ -378,20 +378,22 @@ overmap_special_batch overmap_specials::get_default_batch( const point &origin )
     return overmap_special_batch( origin, res );
 }
 
-overmap_special_batch overmap_specials::get_mandatory_batch( const point &origin )
+overmap_special_batch overmap_specials::get_endgame_batch( const point &origin )
 {
     std::vector<const overmap_special *> res;
-    if( origin.x != 0 || origin.y != 0 ) {
-        return overmap_special_batch( origin, res );
-    }
-
     for( const overmap_special &elem : specials.get_all() ) {
         if( elem.flags.count( "ENDGAME" ) > 0 ) {
             res.push_back( &elem );
         }
     }
 
-    return overmap_special_batch( origin, res );
+    overmap_special_batch batch = overmap_special_batch( origin, res );
+    for( auto &placement : batch ) {
+        // Only one instance
+        placement.instances_placed = placement.special_details->occurrences.max - 1;
+    }
+
+    return batch;
 }
 
 bool is_river( const oter_id &ter )
@@ -1403,6 +1405,7 @@ void overmap::generate( const overmap *north, const overmap *east,
     do {
         requires_sub = generate_sub( z );
     } while( requires_sub && ( --z >= -OVERMAP_DEPTH ) );
+    place_endgame();
 
     // Place the monsters, now that the terrain is laid out
     place_mongroups();
@@ -2864,6 +2867,38 @@ void overmap::place_rifts( const int z )
     }
 }
 
+void overmap::place_endgame()
+{
+    if( !has_endgame() ) {
+        return;
+    }
+
+    const oter_id central_lab_finale( "central_lab_finale" );
+
+    // Find the lowest central lab point and turn it into endgame finale
+    // Slow, but it shouldn't matter
+    for( int z = -OVERMAP_DEPTH; z < 0; z++ ) {
+        std::vector<tripoint> candidates;
+        for( int x = 0; x < OMAPX; x++ ) {
+            for( int y = 0; y < OMAPY; y++ ) {
+                if( get_ter( x, y, z ) == central_lab_finale ) {
+                    candidates.push_back( { x, y, z } );
+                }
+            }
+        }
+
+        if( candidates.empty() ) {
+            continue;
+        }
+
+        auto endgame_finale_pos = random_entry( candidates );
+        ter( endgame_finale_pos ) = oter_id( "endgame_lab_finale" );
+        return;
+    }
+
+    debugmsg( "Couldn't place endgame finale!" );
+}
+
 pf::path overmap::lay_out_connection( const overmap_connection &connection, const point &source,
                                       const point &dest, int z, const bool must_be_unexplored ) const
 {
@@ -3593,15 +3628,31 @@ void overmap::place_specials( overmap_special_batch &enabled_specials )
         ++iter;
     }
 
-    overmap_special_batch endgame = overmap_specials::get_mandatory_batch( point( loc ) );
     // Bail out early if we have nothing to place.
-    if( endgame.empty() && enabled_specials.empty() ) {
+    if( !has_endgame() && enabled_specials.empty() ) {
         return;
     }
+
     om_special_sectors sectors = get_sectors( OMSPEC_FREQ );
 
-    // Endgame content goes first - it's more mandatory (we can't push it away from (0,0))
-    place_specials_pass( endgame, sectors, false, false );
+    if( has_endgame() ) {
+        overmap_special_batch endgame = overmap_specials::get_endgame_batch( point( loc ) );
+        // Remove endgame specials from normal specials to avoid duplicates
+        std::unordered_set<const overmap_special *> endgame_types;
+        for( const auto &placement : endgame ) {
+            endgame_types.insert( placement.special_details );
+        }
+        for( auto iter = enabled_specials.begin(); iter != enabled_specials.end(); ) {
+            if( endgame_types.count( iter->special_details ) > 0 ) {
+                iter = enabled_specials.erase( iter );
+            } else {
+                iter++;
+            }
+        }
+
+        // Endgame content goes first - it's more mandatory (we can't push it away from (0,0))
+        place_specials_pass( endgame, sectors, true, false );
+    }
 
     // Place the mandatory specials to ensure that all minimum instance
     // counts are met.
@@ -3946,6 +3997,11 @@ bool overmap::is_omt_generated( const tripoint &loc ) const
     const bool is_generated = MAPBUFFER.lookup_submap( global_sm_loc ) != nullptr;
 
     return is_generated;
+}
+
+bool overmap::has_endgame() const
+{
+    return loc.x == 0 && loc.y == 0;
 }
 
 overmap_special_id overmap_specials::create_building_from( const string_id<oter_type_t> &base )
