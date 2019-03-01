@@ -5511,6 +5511,15 @@
   },
   {
     "type": "terrain",
+    "id": "t_portal_endgame",
+    "name": "portal to a different world",
+    "symbol": "8",
+    "color": "red",
+    "move_cost": 0,
+    "flags": [ "TRANSPARENT", "DESTROY_ITEM" ]
+  },
+  {
+    "type": "terrain",
     "id": "t_sandbox",
     "name": "sandbox",
     "symbol": "#",

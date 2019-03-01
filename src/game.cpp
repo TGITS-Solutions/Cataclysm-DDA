@@ -13249,8 +13249,12 @@ void game::victory()
     catacurses::window w = catacurses::newwin( FULL_SCREEN_HEIGHT, FULL_SCREEN_WIDTH,
                        std::max( 0, ( TERMY - FULL_SCREEN_HEIGHT ) / 2 ),
                        std::max( 0, ( TERMX - FULL_SCREEN_WIDTH ) / 2 ) );
+    u.add_memorial_log( pgettext( "memorial_male", "%s saved the world from the Cataclysm!" ),
+                        pgettext( "memorial_female", "%s saved the world from the Cataclysm!" ),
+                        u.name.c_str() );
     std::vector<std::string> data;
-    data.emplace_back( _( "You closed the portal and saved the world" ) );
+    data.emplace_back( _( "You closed the portal and saved the world!" ) );
+    data.emplace_back( _( "You can continue playing or retire (commit suicide)." ) );
     std::string time = game_time_description( calendar::turn );
     data.emplace_back( string_format( _( "Time spent on saving the world: %s" ), time.c_str() ) );
     display_table( w, _( "Victory stats" ), 1, data );

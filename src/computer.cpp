@@ -1274,7 +1274,7 @@ SHORTLY. TO ENSURE YOUR SAFETY PLEASE FOLLOW THE BELOW STEPS. \n\
             if( found ) {
                 g->victory();
             } else {
-                print_line( _( "Error: No active portal system within range" ) );
+                query_any( _( "Error: No active portal system within range" ) );
             }
             break;
 
