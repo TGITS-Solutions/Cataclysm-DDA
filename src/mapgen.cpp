@@ -1289,7 +1289,6 @@ class jmapgen_computer : public jmapgen_piece
                     const float /*mon_density*/ ) const override {
             const int rx = x.get();
             const int ry = y.get();
-            dat.m.ter_set( rx, ry, t_console );
             dat.m.furn_set( rx, ry, f_null );
             computer *cpu = dat.m.add_computer( tripoint( rx, ry, dat.m.get_abs_sub().z ), name, security );
             for( const auto &opt : options ) {
@@ -7226,7 +7225,10 @@ vehicle *map::add_vehicle_to_map( std::unique_ptr<vehicle> veh, const bool merge
 
 computer *map::add_computer( const tripoint &p, const std::string &name, int security )
 {
-    ter_set( p, t_console ); // TODO: Turn this off?
+    if( !has_flag( "CONSOLE", p ) ) {
+        ter_set( p, t_console );
+    }
+
     submap *place_on_submap = get_submap_at( p );
     place_on_submap->comp.reset( new computer( name, security ) );
     return place_on_submap->comp.get();

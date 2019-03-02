@@ -5954,6 +5954,15 @@
   },
   {
     "type": "terrain",
+    "id": "t_console_indestructible",
+    "name": "armored console",
+    "symbol": "6",
+    "color": "ltblue",
+    "move_cost": 0,
+    "flags": [ "TRANSPARENT", "CONSOLE", "NOITEM", "INDOORS", "SHORT", "PERMEABLE" ]
+  },
+  {
+    "type": "terrain",
     "id": "t_gates_mech_control",
     "name": "mechanical winch",
     "symbol": "6",

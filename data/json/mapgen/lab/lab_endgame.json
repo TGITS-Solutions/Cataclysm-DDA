@@ -35,7 +35,7 @@
         "........................"
       ],
       "palettes": [ "lab_palette", "lab_loot_research" ],
-      "terrain": { "6": "t_console", "*": "t_portal_endgame", "|": "t_wall_metal" },
+      "terrain": { "6": "t_console_indestructible", "*": "t_portal_endgame", "|": "t_wall_metal" },
       "computers": {
         "6": {
           "name": "Portal Control",
