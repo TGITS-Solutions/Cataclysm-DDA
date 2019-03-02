@@ -291,6 +291,7 @@ class overmap
         void init_layers();
         // open existing overmap, or generate a new one
         void open( overmap_special_batch &enabled_specials );
+        bool has_endgame() const;
     public:
 
         /**
@@ -349,6 +350,7 @@ class overmap
         bool build_slimepit( int x, int y, int z, int s );
         void build_mine( int x, int y, int z, int s );
         void place_rifts( const int z );
+        void place_endgame();
 
         // Connection laying
         pf::path lay_out_connection( const overmap_connection &connection, const point &source,

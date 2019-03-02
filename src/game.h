@@ -190,6 +190,9 @@ class game
          */
         bool load_packs( const std::string &msg, const std::vector<mod_id> &packs, loading_ui &ui );
 
+        /** Displays victory screen */
+        void victory();
+
     protected:
         /** Loads dynamic data from the given directory. May throw. */
         void load_data_from_dir( const std::string &path, const std::string &src, loading_ui &ui );

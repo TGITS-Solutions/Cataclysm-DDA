@@ -5511,6 +5511,15 @@
   },
   {
     "type": "terrain",
+    "id": "t_portal_endgame",
+    "name": "portal to a different world",
+    "symbol": "8",
+    "color": "red",
+    "move_cost": 0,
+    "flags": [ "TRANSPARENT", "DESTROY_ITEM" ]
+  },
+  {
+    "type": "terrain",
     "id": "t_sandbox",
     "name": "sandbox",
     "symbol": "#",
@@ -5942,6 +5951,15 @@
         { "item": "scrap", "count": [ 2, 6 ], "prob": 50 }
       ]
     }
+  },
+  {
+    "type": "terrain",
+    "id": "t_console_indestructible",
+    "name": "armored console",
+    "symbol": "6",
+    "color": "ltblue",
+    "move_cost": 0,
+    "flags": [ "TRANSPARENT", "CONSOLE", "NOITEM", "INDOORS", "SHORT", "PERMEABLE" ]
   },
   {
     "type": "terrain",

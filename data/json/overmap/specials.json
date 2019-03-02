@@ -364,7 +364,7 @@
         "city_distance" : [20, -1],
         "city_sizes" : [0, 6],
         "occurrences" : [15, 100],
-        "flags" : [ "UNIQUE" ],
+        "flags" : [ "UNIQUE", "ENDGAME" ],
         "rotate": false
     },{
         "type" : "overmap_special",
