@@ -42,8 +42,6 @@ const skill_id skill_launcher( "launcher" );
 const efftype_id effect_on_roof( "on_roof" );
 const efftype_id effect_hit_by_player( "hit_by_player" );
 
-static const trait_id trait_HOLLOW_BONES( "HOLLOW_BONES" );
-static const trait_id trait_LIGHT_BONES( "LIGHT_BONES" );
 static const trait_id trait_PYROMANIA( "PYROMANIA" );
 
 const trap_str_id tr_practice_target( "tr_practice_target" );
@@ -188,6 +186,43 @@ bool player::handle_gun_damage( item &it )
             it.inc_damage();
         }
         return false;
+        // Here we check for a chance for attached mods to get damaged if they are flagged as 'CONSUMABLE'.
+        // This is mostly for crappy handmade expedient stuff  or things that rarely receive damage during normal usage.
+        // Default chance is 1/10000 unless set via json, damage is proportional to caliber(see below).
+        // Can be toned down with 'consume_divisor.'
+
+    } else if( it.has_flag( "CONSUMABLE" )  && !curammo_effects.count( "LASER" ) &&
+               !curammo_effects.count( "PLASMA" ) ) {
+        int uncork = ( ( 10 * it.ammo_data()->ammo->loudness )
+                       + ( it.ammo_data()->ammo->recoil / 2 ) ) / 100;
+        uncork = std::pow( uncork, 3 ) * 6.5;
+        for( auto mod : it.gunmods() ) {
+            if( mod->has_flag( "CONSUMABLE" ) ) {
+                int dmgamt = uncork / mod->type->gunmod->consume_divisor;
+                int modconsume = mod->type->gunmod->consume_chance;
+                int initstate = it.damage();
+                // fuzz damage if it's small
+                if( dmgamt < 1000 ) {
+                    dmgamt = rng( dmgamt, dmgamt + 200 );
+                    // ignore damage if inconsequential.
+                }
+                if( dmgamt < 800 ) {
+                    dmgamt = 0;
+    }
+                if( one_in( modconsume ) ) {
+                    if( mod->mod_damage( dmgamt ) ) {
+                        add_msg_player_or_npc( m_bad,  _( "Your attached %s is destroyed by your shot!" ),
+                                               _( "<npcname>'s attached %s is destroyed by their shot!" ),
+                                               mod->tname().c_str() );
+                        i_rem( mod );
+                    } else if( it.damage() > initstate ) {
+                        add_msg_player_or_npc( m_bad,  _( "Your attached %s is damaged by your shot!" ),
+                                               _( "<npcname>'s %s is damaged by their shot!" ),
+                                               mod->tname().c_str() );
+    }
+                }
+            }
+        }
     }
     return true;
 }
@@ -343,13 +378,7 @@ int throw_cost( const player &c, const item &to_throw )
     move_cost *= stamina_penalty;
     move_cost += skill_cost;
     move_cost -= dexbonus;
-
-    if( c.has_trait( trait_LIGHT_BONES ) ) {
-        move_cost *= .9;
-    }
-    if( c.has_trait( trait_HOLLOW_BONES ) ) {
-        move_cost *= .8;
-    }
+    move_cost *= c.mutation_value( "attackcost_modifier" );
 
     return std::max( 25, move_cost );
 }

@@ -247,7 +247,7 @@ void print_stamina_bar( const player &p, const catacurses::window &w )
 {
     std::string sta_bar;
     nc_color sta_color;
-    std::tie( sta_bar, sta_color ) = get_hp_bar( p.stamina, p.get_stamina_max() );
+    std::tie( sta_bar, sta_color ) = get_stamina_bar( p.stamina, p.get_stamina_max() );
     wprintz( w, sta_color, sta_bar );
 }
 
@@ -308,25 +308,8 @@ void player::disp_status( const catacurses::window &w, const catacurses::window 
         const int x = sideStyle ? ( getmaxx( weapwin ) - 13 ) : 0;
         mvwprintz( weapwin, 1, x, style_color, style );
     }
-
-    wmove( w, sideStyle ? 1 : 2, 0 );
-    if( get_hunger() >= 300 && get_starvation() > 2500 ) {
-        wprintz( w, c_red,    _( "Starving!" ) );
-    } else if( get_hunger() >= 300 && get_starvation() > 1100 ) {
-        wprintz( w, c_light_red,  _( "Near starving" ) );
-    } else if( get_hunger() > 250 ) {
-        wprintz( w, c_light_red,  _( "Famished" ) );
-    } else if( get_hunger() > 100 ) {
-        wprintz( w, c_yellow, _( "Very hungry" ) );
-    } else if( get_hunger() > 40 ) {
-        wprintz( w, c_yellow, _( "Hungry" ) );
-    } else if( get_hunger() < -60 ) {
-        wprintz( w, c_green,  _( "Engorged" ) );
-    } else if( get_hunger() < -20 ) {
-        wprintz( w, c_green,  _( "Sated" ) );
-    } else if( get_hunger() < 0 ) {
-        wprintz( w, c_green,  _( "Full" ) );
-    }
+    std::pair <std::string, nc_color> hunger_pair = get_hunger_description();
+    mvwprintz( w, sideStyle ? 1 : 2, sideStyle ? 0 : 22, hunger_pair.second, hunger_pair.first );
 
     /// Find hottest/coldest bodypart
     // Calculate the most extreme body temperatures
@@ -384,6 +367,7 @@ void player::disp_status( const catacurses::window &w, const catacurses::window 
         wprintz( w, c_blue,  _( "Freezing!%s" ), temp_message );
     }
 
+    //todo check
     const int x = 32;
     const int y = sideStyle ?  0 :  1;
     if( is_deaf() ) {
@@ -393,33 +377,14 @@ void player::disp_status( const catacurses::window &w, const catacurses::window 
     }
     volume = 0;
 
-    wmove( w, 2, sideStyle ? 0 : 15 );
-    if( get_thirst() > 520 ) {
-        wprintz( w, c_light_red,  _( "Parched" ) );
-    } else if( get_thirst() > 240 ) {
-        wprintz( w, c_light_red,  _( "Dehydrated" ) );
-    } else if( get_thirst() > 80 ) {
-        wprintz( w, c_yellow, _( "Very thirsty" ) );
-    } else if( get_thirst() > 40 ) {
-        wprintz( w, c_yellow, _( "Thirsty" ) );
-    } else if( get_thirst() < -60 ) {
-        wprintz( w, c_green,  _( "Turgid" ) );
-    } else if( get_thirst() < -20 ) {
-        wprintz( w, c_green,  _( "Hydrated" ) );
-    } else if( get_thirst() < 0 ) {
-        wprintz( w, c_green,  _( "Slaked" ) );
-    }
+    std::pair <std::string, nc_color> thirst_pair = get_thirst_description();
+    mvwprintz( w, sideStyle ? 2 : 1, sideStyle ? 0 : 22, thirst_pair.second, thirst_pair.first );
+    wrefresh( w );
 
-    wmove( w, sideStyle ? 3 : 2, sideStyle ? 0 : 30 );
-    if( get_fatigue() > EXHAUSTED ) {
-        wprintz( w, c_red,    _( "Exhausted" ) );
-    } else if( get_fatigue() > DEAD_TIRED ) {
-        wprintz( w, c_light_red,  _( "Dead tired" ) );
-    } else if( get_fatigue() > TIRED ) {
-        wprintz( w, c_yellow, _( "Tired" ) );
-    }
-
-    wmove( w, sideStyle ? 4 : 2, sideStyle ? 0 : 41 );
+    wmove( w, sideStyle ? 3 : 2, 0 );
+    std::pair <std::string, nc_color> fatigue_pair = get_fatigue_description();
+    wprintz( w, fatigue_pair.second, fatigue_pair.first );
+    wmove( w, sideStyle ? 4 : 2, sideStyle ? 0 : 43 );
     wprintz( w, c_white, _( "Focus" ) );
     nc_color col_xp = c_dark_gray;
     if( focus_pool >= 100 ) {
@@ -566,4 +531,3 @@ void player::disp_status( const catacurses::window &w, const catacurses::window 
         }
     }
 }
-
