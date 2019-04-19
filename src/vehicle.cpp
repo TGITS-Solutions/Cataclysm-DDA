@@ -1238,6 +1238,7 @@ int vehicle::install_part( const point &dp, const vehicle_part &new_part )
                 "REAPER",
                 "PLANTER",
                 "SCOOP",
+                "SPACE_HEATER"
                 "WATER_PURIFIER",
                 "ROCKWHEEL"
             }
@@ -3483,7 +3484,7 @@ float vehicle::k_traction( float wheel_traction_area ) const
 
 int vehicle::static_drag( bool actual ) const
 {
-    return extra_drag / 1000 + ( actual && !engine_on ? 300 : 0 );
+    return extra_drag + ( actual && !engine_on ? -1500 : 0 );
 }
 
 float vehicle::strain() const
@@ -3729,7 +3730,7 @@ int vehicle::total_epower_w( int &engine_epower, bool skip_solar )
             }
         }
         if( engine_vpower ) {
-            alternator_load = 1000 * abs( alternators_power + extra_drag ) / engine_vpower;
+            alternator_load = 1000 * ( abs( alternators_power ) + abs( extra_drag ) ) / engine_vpower;
         } else {
             alternator_load = 0;
         }
@@ -4462,6 +4463,7 @@ void vehicle::refresh()
     wind_turbines.clear();
     water_wheels.clear();
     funnels.clear();
+    heaters.clear();
     relative_parts.clear();
     loose_parts.clear();
     wheelcache.clear();
@@ -4536,6 +4538,9 @@ void vehicle::refresh()
         if( vpi.has_flag( "UNMOUNT_ON_MOVE" ) ) {
             loose_parts.push_back( p );
         }
+        if( vpi.has_flag( "SPACE_HEATER" ) ) {
+            heaters.push_back( p );
+        }
         if( vpi.has_flag( VPFLAG_WHEEL ) ) {
             wheelcache.push_back( p );
         }
@@ -4549,6 +4554,10 @@ void vehicle::refresh()
             speciality.push_back( p );
         }
         if( vp.part().enabled && vpi.has_flag( "EXTRA_DRAG" ) ) {
+            extra_drag += vpi.power;
+        }
+        if( vpi.has_flag( "EXTRA_DRAG" ) && ( vpi.has_flag( "WIND_TURBINE" ) ||
+                                              vpi.has_flag( "WATER_WHEEL" ) ) ) {
             extra_drag += vpi.power;
         }
         if( camera_on && vpi.has_flag( "CAMERA" ) ) {
@@ -5272,10 +5281,20 @@ void vehicle::update_time( const time_point &update_to )
 
     // Weather stuff, only for z-levels >= 0
     // TODO: Have it wash cars from blood?
-    if( funnels.empty() && solar_panels.empty() && wind_turbines.empty() && water_wheels.empty() ) {
+    if( funnels.empty() && solar_panels.empty() && wind_turbines.empty() && water_wheels.empty() &&
+        heaters.empty() ) {
         return;
     }
-
+    // heaters emitting hot air
+    for( int idx : heaters ) {
+        const auto &pt = parts[idx];
+        if( pt.is_unavailable() || ( !pt.enabled ) ) {
+            continue;
+        }
+        int density = abs( pt.info().epower ) * 2;
+        g->m.adjust_field_strength( global_part_pos3( pt ), fd_hot_air3, density );
+        discharge_battery( pt.info().epower );
+    }
     // Get one weather data set per vehicle, they don't differ much across vehicle area
     auto accum_weather = sum_conditions( update_from, update_to, g->m.getabs( global_pos3() ) );
     // make some reference objects to use to check for reload

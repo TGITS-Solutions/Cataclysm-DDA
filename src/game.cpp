@@ -169,7 +169,6 @@ const efftype_id effect_emp( "emp" );
 const efftype_id effect_evil( "evil" );
 const efftype_id effect_flu( "flu" );
 const efftype_id effect_glowing( "glowing" );
-const efftype_id effect_has_bag( "has_bag" );
 const efftype_id effect_hot( "hot" );
 const efftype_id effect_infected( "infected" );
 const efftype_id effect_laserlocked( "laserlocked" );
@@ -182,7 +181,6 @@ const efftype_id effect_sleep( "sleep" );
 const efftype_id effect_stunned( "stunned" );
 const efftype_id effect_teleglow( "teleglow" );
 const efftype_id effect_tetanus( "tetanus" );
-const efftype_id effect_tied( "tied" );
 const efftype_id effect_visuals( "visuals" );
 const efftype_id effect_winded( "winded" );
 
@@ -251,7 +249,8 @@ game::game() :
     tileset_zoom( 16 ),
     wind_direction_override(),
     windspeed_override(),
-    weather_override( WEATHER_NULL )
+    weather_override( WEATHER_NULL ),
+    displaying_scent( false )
 
 {
     temperature = 0;
@@ -5988,268 +5987,6 @@ void game::control_vehicle()
     }
 }
 
-bool pet_menu( monster *z )
-{
-    enum choices {
-        swap_pos = 0,
-        push_zlave,
-        rename,
-        attach_bag,
-        drop_all,
-        give_items,
-        play_with_pet,
-        pheromone,
-        milk,
-        rope
-    };
-
-    uilist amenu;
-    std::string pet_name = z->get_name();
-    if( z->type->in_species( ZOMBIE ) ) {
-        pet_name = _( "zombie slave" );
-    }
-
-    amenu.text = string_format( _( "What to do with your %s?" ), pet_name.c_str() );
-
-    amenu.addentry( swap_pos, true, 's', _( "Swap positions" ) );
-    amenu.addentry( push_zlave, true, 'p', _( "Push %s" ), pet_name.c_str() );
-    amenu.addentry( rename, true, 'e', _( "Rename" ) );
-
-    if( z->has_effect( effect_has_bag ) ) {
-        amenu.addentry( give_items, true, 'g', _( "Place items into bag" ) );
-        amenu.addentry( drop_all, true, 'd', _( "Drop all items" ) );
-    } else {
-        amenu.addentry( attach_bag, true, 'b', _( "Attach bag" ) );
-    }
-
-    if( z->has_flag( MF_BIRDFOOD ) || z->has_flag( MF_CATFOOD ) || z->has_flag( MF_DOGFOOD ) ) {
-        amenu.addentry( play_with_pet, true, 'y', _( "Play with %s" ), pet_name.c_str() );
-    }
-
-    if( z->has_effect( effect_tied ) ) {
-        amenu.addentry( rope, true, 'r', _( "Untie" ) );
-    } else {
-        if( g->u.has_amount( "rope_6", 1 ) ) {
-            amenu.addentry( rope, true, 'r', _( "Tie" ) );
-        } else {
-            amenu.addentry( rope, false, 'r', _( "You need a short rope" ) );
-        }
-    }
-
-    if( z->type->in_species( ZOMBIE ) ) {
-        amenu.addentry( pheromone, true, 't', _( "Tear out pheromone ball" ) );
-    }
-
-    if( z->has_flag( MF_MILKABLE ) ) {
-        amenu.addentry( milk, true, 'm', _( "Milk %s" ), pet_name.c_str() );
-    }
-
-    amenu.query();
-    int choice = amenu.ret;
-
-    if( swap_pos == choice ) {
-        g->u.moves -= 150;
-
-        ///\EFFECT_STR increases chance to successfully swap positions with your pet
-
-        ///\EFFECT_DEX increases chance to successfully swap positions with your pet
-        if( !one_in( ( g->u.str_cur + g->u.dex_cur ) / 6 ) ) {
-
-            bool t = z->has_effect( effect_tied );
-            if( t ) {
-                z->remove_effect( effect_tied );
-            }
-
-            tripoint zp = z->pos();
-            z->move_to( g->u.pos(), true );
-            g->u.setpos( zp );
-
-            if( t ) {
-                z->add_effect( effect_tied, 1_turns, num_bp, true );
-            }
-
-            add_msg( _( "You swap positions with your %s." ), pet_name.c_str() );
-
-            return true;
-        } else {
-            add_msg( _( "You fail to budge your %s!" ), pet_name.c_str() );
-
-            return true;
-        }
-    }
-
-    if( push_zlave == choice ) {
-
-        g->u.moves -= 30;
-
-        ///\EFFECT_STR increases chance to successfully push your pet
-        if( !one_in( g->u.str_cur ) ) {
-            add_msg( _( "You pushed the %s." ), pet_name.c_str() );
-        } else {
-            add_msg( _( "You pushed the %s, but it resisted." ), pet_name.c_str() );
-            return true;
-        }
-
-        int deltax = z->posx() - g->u.posx(), deltay = z->posy() - g->u.posy();
-
-        z->move_to( tripoint( z->posx() + deltax, z->posy() + deltay, z->posz() ) );
-
-        return true;
-    }
-
-    if( rename == choice ) {
-        std::string unique_name = string_input_popup()
-                                  .title( _( "Enter new pet name:" ) )
-                                  .width( 20 )
-                                  .query_string();
-        if( unique_name.length() > 0 ) {
-            z->unique_name = unique_name;
-        }
-        return true;
-    }
-
-    if( attach_bag == choice ) {
-        int pos = g->inv_for_filter( _( "Bag item" ), []( const item & it ) {
-            return it.is_armor() && it.get_storage() > 0_ml;
-        } );
-
-        if( pos == INT_MIN ) {
-            add_msg( _( "Never mind." ) );
-            return true;
-        }
-
-        item &it = g->u.i_at( pos );
-
-        z->add_item( it );
-
-        add_msg( _( "You mount the %1$s on your %2$s, ready to store gear." ),
-                 it.display_name().c_str(), pet_name.c_str() );
-
-        g->u.i_rem( pos );
-
-        z->add_effect( effect_has_bag, 1_turns, num_bp, true );
-
-        g->u.moves -= 200;
-
-        return true;
-    }
-
-    if( drop_all == choice ) {
-        for( auto &it : z->inv ) {
-            g->m.add_item_or_charges( z->pos(), it );
-        }
-
-        z->inv.clear();
-
-        z->remove_effect( effect_has_bag );
-
-        add_msg( _( "You dump the contents of the %s's bag on the ground." ), pet_name.c_str() );
-
-        g->u.moves -= 200;
-        return true;
-    }
-
-    if( give_items == choice ) {
-
-        if( z->inv.empty() ) {
-            add_msg( _( "There is no container on your %s to put things in!" ), pet_name.c_str() );
-            return true;
-        }
-
-        item &it = z->inv[0];
-
-        if( !it.is_armor() ) {
-            add_msg( _( "There is no container on your %s to put things in!" ), pet_name.c_str() );
-            return true;
-        }
-
-        units::volume max_cap = it.get_storage();
-        units::mass max_weight = z->weight_capacity() - it.weight();
-
-        if( z->inv.size() > 1 ) {
-            for( auto &i : z->inv ) {
-                max_cap -= i.volume();
-                max_weight -= i.weight();
-            }
-        }
-
-        if( max_weight <= 0_gram ) {
-            add_msg( _( "%1$s is overburdened. You can't transfer your %2$s." ),
-                     pet_name.c_str(), it.tname( 1 ).c_str() );
-            return true;
-        }
-        if( max_cap <= 0_ml ) {
-            add_msg( _( "There's no room in your %1$s's %2$s for that, it's too bulky!" ),
-                     pet_name.c_str(), it.tname( 1 ).c_str() );
-            return true;
-        }
-
-        const auto items_to_stash = game_menus::inv::multidrop( g->u );
-        if( !items_to_stash.empty() ) {
-            g->u.drop( items_to_stash, z->pos(), true );
-            z->add_effect( effect_controlled, 5_turns );
-            return true;
-        }
-
-        return false;
-    }
-
-    if( play_with_pet == choice &&
-        query_yn( _( "Spend a few minutes to play with your %s?" ), pet_name.c_str() ) ) {
-        g->u.assign_activity( activity_id( "ACT_PLAY_WITH_PET" ), rng( 50, 125 ) * 100 );
-        g->u.activity.str_values.push_back( pet_name );
-
-    }
-
-    if( pheromone == choice && query_yn( _( "Really kill the zombie slave?" ) ) ) {
-
-        z->apply_damage( &g->u, bp_torso, 100 ); // damage the monster (and its corpse)
-        z->die( &g->u ); // and make sure it's really dead
-
-        g->u.moves -= 150;
-
-        if( !one_in( 3 ) ) {
-            g->u.add_msg_if_player( _( "You tear out the pheromone ball from the zombie slave." ) );
-
-            item ball( "pheromone", 0 );
-            iuse pheromone;
-            pheromone.pheromone( &( g->u ), &ball, true, g->u.pos() );
-        }
-
-    }
-
-    if( rope == choice ) {
-        if( z->has_effect( effect_tied ) ) {
-            z->remove_effect( effect_tied );
-            item rope_6( "rope_6", 0 );
-            g->u.i_add( rope_6 );
-        } else {
-            z->add_effect( effect_tied, 1_turns, num_bp, true );
-            g->u.use_amount( "rope_6", 1 );
-        }
-
-        return true;
-    }
-
-    if( milk == choice ) {
-        // pin the cow in place if it isn't already
-        bool temp_tie = !z->has_effect( effect_tied );
-        if( temp_tie ) {
-            z->add_effect( effect_tied, 1_turns, num_bp, true );
-        }
-
-        monexamine::milk_source( *z );
-
-        if( temp_tie ) {
-            z->remove_effect( effect_tied );
-        }
-
-        return true;
-    }
-
-    return true;
-}
-
 bool game::npc_menu( npc &who )
 {
     enum choices : int {
@@ -6440,7 +6177,7 @@ void game::examine( const tripoint &examp )
     if( c != nullptr ) {
         monster *mon = dynamic_cast<monster *>( c );
         if( mon != nullptr && mon->has_effect( effect_pet ) ) {
-            if( pet_menu( mon ) ) {
+            if( monexamine::pet_menu( *mon ) ) {
                 return;
             }
         }
@@ -6521,6 +6258,8 @@ void game::examine( const tripoint &examp )
         if( m.tr_at( examp ).is_null() && m.i_at( examp ).empty() &&
             m.has_flag( "CONTAINER", examp ) && none ) {
             add_msg( _( "It is empty." ) );
+        } else if( m.has_flag( TFLAG_FIRE_CONTAINER, examp ) && xfurn_t.examine == &iexamine::fireplace ) {
+            return;
         } else {
             draw_sidebar_messages();
             sounds::process_sound_markers( &u );
@@ -6602,7 +6341,7 @@ void game::print_all_tile_info( const tripoint &lp, const catacurses::window &w_
             print_terrain_info( lp, w_look, area_name, column, line );
             print_fields_info( lp, w_look, column, line );
             print_trap_info( lp, w_look, column, line );
-            print_creature_info( creature, w_look, column, line );
+            print_creature_info( creature, w_look, column, line, last_line );
             print_vehicle_info( veh_pointer_or_null( vp ), vp ? vp->part_index() : -1, w_look, column, line,
                                 last_line );
             print_items_info( lp, w_look, column, line, last_line );
@@ -6765,10 +6504,11 @@ void game::print_trap_info( const tripoint &lp, const catacurses::window &w_look
 }
 
 void game::print_creature_info( const Creature *creature, const catacurses::window &w_look,
-                                const int column, int &line )
+                                const int column, int &line, const int last_line )
 {
+    int vLines = last_line - line;
     if( creature != nullptr && ( u.sees( *creature ) || creature == &u ) ) {
-        line = creature->print_info( w_look, ++line, 6, column );
+        line = creature->print_info( w_look, ++line, vLines, column );
     }
 }
 
@@ -12624,16 +12364,20 @@ void game::nuke( const tripoint &p )
 
 void game::display_scent()
 {
-    int div;
-    bool got_value = query_int( div, _( "Set the Scent Map sensitivity to (0 to cancel)?" ) );
-    if( !got_value || div < 1 ) {
-        add_msg( _( "Never mind." ) );
-        return;
+    if( use_tiles ) {
+        displaying_scent = !displaying_scent;
+    } else {
+        int div;
+        bool got_value = query_int( div, _( "Set the Scent Map sensitivity to (0 to cancel)?" ) );
+        if( !got_value || div < 1 ) {
+            add_msg( _( "Never mind." ) );
+            return;
+        }
+        draw_ter();
+        scent.draw( w_terrain, div * 2, u.pos() + u.view_offset );
+        wrefresh( w_terrain );
+        inp_mngr.wait_for_any_key();
     }
-    draw_ter();
-    scent.draw( w_terrain, div * 2, u.pos() + u.view_offset );
-    wrefresh( w_terrain );
-    inp_mngr.wait_for_any_key();
 }
 
 void game::init_autosave()
@@ -13286,7 +13030,7 @@ overmap &game::get_cur_om() const
 std::vector<npc *> game::allies()
 {
     return get_npcs_if( [&]( const npc & guy ) {
-        return guy.is_friend();
+        return guy.is_friend() || guy.mission == NPC_MISSION_GUARD_ALLY;
     } );
 }
 

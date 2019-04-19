@@ -15,6 +15,7 @@
 #include "craft_command.h"
 #include "debug.h"
 #include "event.h"
+#include "field.h"
 #include "fungal_effects.h"
 #include "game.h"
 #include "harvest.h"
@@ -26,12 +27,15 @@
 #include "mapdata.h"
 #include "material.h"
 #include "messages.h"
+#include "mission.h"
+#include "mission_companion.h"
 #include "monster.h"
 #include "mtype.h"
 #include "iuse_actor.h"
 #include "npc.h"
 #include "options.h"
 #include "output.h"
+#include "pickup.h"
 #include "player.h"
 #include "requirements.h"
 #include "rng.h"
@@ -1194,30 +1198,19 @@ void iexamine::locked_object( player &p, const tripoint &examp) {
     dummy.crowbar( &p, &temporary_item, false, examp );
 }
 
-void iexamine::bulletin_board( player &, const tripoint &examp )
+void iexamine::bulletin_board( player &p, const tripoint &examp )
 {
-    basecamp *camp = g->m.camp_at( examp );
-    if( camp && camp->board_x() == examp.x && camp->board_y() == examp.y ) {
-        std::vector<std::string> options;
-        options.push_back( _( "Cancel" ) );
-        // Causes a warning due to being unused, but don't want to delete
-        // since it's clearly what's intended for future functionality.
-        int choice = uilist( camp->board_name(), options );
-        static_cast<void>( choice );
+    basecamp *bcp = g->m.camp_at( examp, 60 );
+    if( bcp ) {
+        const std::string title = ( "Base Missions" );
+        mission_data mission_key;
+        bcp->get_available_missions( mission_key );
+        if( talk_function::display_and_choose_opts( mission_key, bcp->camp_omt_pos(), "FACTION_CAMP",
+                title ) ) {
+            bcp->handle_mission( mission_key.cur_key.id, mission_key.cur_key.dir );
+        }
     } else {
-        bool create_camp = g->m.allow_camp( examp );
-        std::vector<std::string> options;
-        if( create_camp ) {
-            options.push_back( _( "Create camp" ) );
-        }
-        // @todo: Other Bulletin Boards
-        int choice = uilist( _( "Bulletin Board" ), options );
-        if( choice >= 0 && size_t( choice ) < options.size() ) {
-            if( options[choice] == _( "Create camp" ) ) {
-                // @todo: Allow text entry for name
-                g->m.add_camp( examp, _( "Home" ) );
-            }
-        }
+        p.add_msg_if_player( _( "This bulletin board is not inside a camp" ) );
     }
 }
 
@@ -1994,28 +1987,29 @@ void iexamine::harvest_plant( player &p, const tripoint &examp )
     }
 }
 
-std::string iexamine::fertilize_failure_reason( player &p, const tripoint &tile,
-        const itype_id &fertilizer )
+ret_val<bool> iexamine::can_fertilize( player &p, const tripoint &tile,
+                                       const itype_id &fertilizer )
 {
     if( !g->m.has_flag_furn( "PLANT", tile ) ) {
-        return _( "Tile isn't a plant" );
+        return ret_val<bool>::make_failure( _( "Tile isn't a plant" ) );
     }
     if( g->m.i_at( tile ).size() > 1 ) {
-        return _( "Tile is already fertilized" );
+        return ret_val<bool>::make_failure( _( "Tile is already fertilized" ) );
     }
     if( !p.has_charges( fertilizer, 1 ) ) {
-        return string_format( _( "Tried to fertilize with %s, but player doesn't have any." ),
-                              fertilizer.c_str() );
+        return ret_val<bool>::make_failure(
+                   _( "Tried to fertilize with %s, but player doesn't have any." ),
+                   fertilizer.c_str() );
     }
 
-    return std::string();
+    return ret_val<bool>::make_success();
 }
 
 void iexamine::fertilize_plant( player &p, const tripoint &tile, const itype_id &fertilizer )
 {
-    std::string reason = fertilize_failure_reason( p, tile, fertilizer );
-    if( !reason.empty() ) {
-        debugmsg( reason );
+    ret_val<bool> can_fert = can_fertilize( p, tile, fertilizer );
+    if( !can_fert.success() ) {
+        debugmsg( can_fert.str() );
         return;
     }
 
@@ -2236,6 +2230,102 @@ void iexamine::kiln_full( player &, const tripoint &examp )
     g->m.add_item( examp, result );
     g->m.furn_set( examp, next_kiln_type );
     add_msg( _( "It has finished burning, yielding %d charcoal." ), result.charges );
+}
+
+void iexamine::fireplace( player &p, const tripoint &examp )
+{
+    const bool already_on_fire = g->m.has_nearby_fire( examp, 0 );
+    const bool furn_is_deployed = !g->m.furn( examp ).obj().deployed_item.empty();
+
+    if( already_on_fire && !furn_is_deployed ) {
+        none( p, examp );
+        Pickup::pick_up( examp, 0 );
+        return;
+    }
+
+    std::multimap<int, item *> firestarters;
+    for( item *it : p.items_with( []( const item & it ) {
+    return it.has_flag( "FIRESTARTER" ) || it.has_flag( "FIRE" );
+    } ) ) {
+        const auto usef = it->type->get_use( "firestarter" );
+        if( usef != nullptr && usef->get_actor_ptr() != nullptr ) {
+            const auto actor = dynamic_cast<const firestarter_actor *>( usef->get_actor_ptr() );
+            if( actor->can_use( p, *it, false, examp ).success() ) {
+                firestarters.insert( std::pair<int, item *>( actor->moves_cost_fast, it ) );
+            }
+        }
+    }
+
+    const bool has_firestarter = firestarters.size() > 0;
+    const bool has_bionic_firestarter = p.has_bionic( bionic_id( "bio_lighter" ) ) &&
+                                        p.power_level >= bionic_id( "bio_lighter" )->power_activate;
+
+    uilist selection_menu;
+    selection_menu.text = _( "Select an action" );
+    selection_menu.addentry( 0, true, 'e', _( "Examine" ) );
+    if( !already_on_fire ) {
+        selection_menu.addentry( 1, has_firestarter, 'f',
+                                 has_firestarter ? _( "Start a fire" ) : _( "Start a fire... you'll need a fire source." ) );
+        if( has_bionic_firestarter ) {
+            selection_menu.addentry( 2, true, 'b', _( "Use a CBM to start a fire" ) );
+        }
+    }
+    if( furn_is_deployed ) {
+        selection_menu.addentry( 3, true, 't', string_format( _( "Take down the %s" ),
+                                 g->m.furnname( examp ) ) );
+    }
+    selection_menu.query();
+
+    switch( selection_menu.ret ) {
+        case 0:
+            none( p, examp );
+            Pickup::pick_up( examp, 0 );
+            return;
+        case 1: {
+            for( auto &firestarter : firestarters ) {
+                item *it = firestarter.second;
+                const auto usef = it->type->get_use( "firestarter" );
+                const auto actor = dynamic_cast<const firestarter_actor *>( usef->get_actor_ptr() );
+                p.add_msg_if_player( string_format( _( "You attempt to start a fire with your %s..." ),
+                                                    it->tname() ) );
+                const ret_val<bool> can_use = actor->can_use( p, *it, false, examp );
+                if( can_use.success() ) {
+                    const long charges = actor->use( p, *it, false, examp );
+                    p.use_charges( it->typeId(), charges );
+                    return;
+                } else {
+                    p.add_msg_if_player( m_bad, can_use.str() );
+                }
+            }
+            p.add_msg_if_player( _( "You weren't able to start a fire." ) );
+            return;
+        }
+        case 2: {
+            if( g->m.add_field( examp, fd_fire, 1 ) ) {
+                p.charge_power( -bionic_id( "bio_lighter" )->power_activate );
+                p.mod_moves( -100 );
+            } else {
+                p.add_msg_if_player( m_info, _( "You can't light a fire there." ) );
+            }
+            return;
+        }
+        case 3: {
+            if( already_on_fire ) {
+                if( !query_yn( _( "Really take down the %s while it's on fire?" ), g->m.furnname( examp ) ) ) {
+                    return;
+                }
+            }
+            p.add_msg_if_player( m_info, _( "You take down the %s." ),
+                                 g->m.furnname( examp ) );
+            const auto furn_item = g->m.furn( examp ).obj().deployed_item;
+            g->m.add_item_or_charges( examp, item( furn_item, calendar::turn ) );
+            g->m.furn_set( examp, f_null );
+            return;
+        }
+        default:
+            none( p, examp );
+            return;
+    }
 }
 
 void iexamine::fvat_empty( player &p, const tripoint &examp )
@@ -4451,6 +4541,7 @@ iexamine_function iexamine_function_from_string( const std::string &function_nam
             { "locked_object", &iexamine::locked_object },
             { "kiln_empty", &iexamine::kiln_empty },
             { "kiln_full", &iexamine::kiln_full },
+            { "fireplace", &iexamine::fireplace },
             { "climb_down", &iexamine::climb_down },
             { "autodoc", &iexamine::autodoc },
             { "smoker_options", &iexamine::smoker_options },
