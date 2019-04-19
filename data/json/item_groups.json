@@ -584,6 +584,7 @@
       ["soap", 70],
       ["detergent", 50],
       ["dry_beans", 40],
+      ["dry_lentils", 30 ],
       ["dry_rice", 40],
       ["survnote", 1],
       ["cookbook_sushi", 5],
@@ -639,6 +640,8 @@
       { "item": "colamdew", "prob": 15, "container-item": "bottle_twoliter" },
       { "item": "rootbeer", "prob": 15, "container-item": "bottle_twoliter" },
       ["milk", 50],
+      ["almond_milk", 50],
+      ["soy_milk", 50],
       { "item": "egg_bird", "prob": 65, "count-min": 1, "count-max": 12},
       ["yoghurt", 50],
       ["pudding", 60],
@@ -1493,6 +1496,8 @@
       ["crispycran", 40],
       ["colamdew", 60],
       ["purple_drink", 35],
+      ["almond_milk", 30],
+      ["soy_milk", 30],
       ["juice", 20],
       ["sandwich_t", 30],
       ["sandwich_pb", 30],
@@ -1802,6 +1807,7 @@
       {"item": "fish_pickled", "prob":  8, "charges": 2, "container-item": "jar_glass_sealed"},
       ["lutefisk", 1],
       ["dry_beans", 40],
+      ["dry_lentils", 40 ],
       ["dry_rice", 40],
       {"item": "meat_pickled", "prob":  6, "charges": 2, "container-item": "jar_glass_sealed"},
       {"item": "meat_canned", "prob":  4, "charges": 12, "container-item": "jar_3l_glass_sealed"},
@@ -4695,6 +4701,8 @@
       ["gloves_plate", 1],
       ["boots_plate", 1],
       ["helmet_barbute", 1],
+      ["helmet_galea", 1],
+      ["helmet_nasal", 1],
       ["chainmail_suit", 1],
       ["chainmail_hood", 3],
       ["chainmail_vest", 3],
@@ -5714,6 +5722,7 @@
       ["seed_corn", 1],
       ["seed_hops", 1],
       ["raw_beans", 1],
+      ["raw_lentils", 1 ],
       ["seed_chili_pepper", 1],
       ["seed_garlic", 1],
       ["tomato", 9],
@@ -8984,6 +8993,8 @@
       ["armor_samurai", 50],
       ["helmet_kabuto", 50],
       ["helmet_larmor", 40],
+      ["helmet_nasal", 50],
+      ["helmet_galea", 40],
       ["boots_larmor", 40],
       ["armor_larmor", 40],
       ["armguard_larmor", 40],
@@ -9466,7 +9477,8 @@
       ["pie_meat",    28],
       ["pie_veggy",   15],
       ["pie_maple",    7],
-      ["yoghurt",     30]
+      ["yoghurt",     30],
+      ["soy_milk", 20]
     ]
   },{
     "type"  : "item_group",
@@ -9909,6 +9921,7 @@
       [ "can_cheese", 20 ],
       [ "dry_rice", 20 ],
       [ "dry_beans", 20 ],
+      [ "dry_lentils", 50 ],
       [ "bread", 40 ],
       [ "cookies", 25 ],
       [ "candy", 20 ]
@@ -10328,5 +10341,10 @@
         [ "belgian_ale", 10 ],
         [ "imperial_stout", 4 ]
       ]
+    },
+    {
+      "type" : "item_group",
+      "id" : "maps",
+      "items":[ { "item": "roadmap", "prob": 33 }, { "item": "touristmap", "prob": 33 }, { "item": "survivormap", "prob": 33 } ]
     }
   ]

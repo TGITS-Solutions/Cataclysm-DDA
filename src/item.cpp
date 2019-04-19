@@ -3683,7 +3683,7 @@ units::volume item::get_storage() const
 {
     auto t = find_armor_data();
     if( t == nullptr ) {
-        return 0_ml;
+        return is_pet_armor() ? type->pet_armor->storage : 0_ml;
     }
 
     return t->storage;
@@ -3693,7 +3693,7 @@ int item::get_env_resist( int override_base_resist ) const
 {
     const auto t = find_armor_data();
     if( t == nullptr ) {
-        return 0;
+        return is_pet_armor() ? type->pet_armor->env_resist : 0;
     }
     // modify if item is a gas mask and has filter
     int resist_base = t->env_resist;
@@ -3707,7 +3707,7 @@ int item::get_base_env_resist_w_filter() const
 {
     const auto t = find_armor_data();
     if( t == nullptr ) {
-        return 0;
+        return is_pet_armor() ? type->pet_armor->env_resist_w_filter : 0;
     }
     return t->env_resist_w_filter;
 }
@@ -3716,7 +3716,7 @@ bool item::is_power_armor() const
 {
     const auto t = find_armor_data();
     if( t == nullptr ) {
-        return false;
+        return is_pet_armor() ? type->pet_armor->power_armor : false;
     }
     return t->power_armor;
 }
@@ -3812,7 +3812,7 @@ int item::get_thickness() const
 {
     const auto t = find_armor_data();
     if( t == nullptr ) {
-        return 0;
+        return is_pet_armor() ? type->pet_armor->thickness : 0;
     }
     return t->thickness;
 }
@@ -3836,6 +3836,21 @@ int item::get_warmth() const
     }
 
     return result + fur_lined + wool_lined;
+}
+
+units::volume item::get_pet_armor_max_vol() const
+{
+    return is_pet_armor() ? type->pet_armor->max_vol : 0_ml;
+}
+
+units::volume item::get_pet_armor_min_vol() const
+{
+    return is_pet_armor() ? type->pet_armor->min_vol : 0_ml;
+}
+
+std::string item::get_pet_armor_bodytype() const
+{
+    return is_pet_armor() ? type->pet_armor->bodytype : "";
 }
 
 time_duration item::brewing_time() const
@@ -3927,7 +3942,7 @@ int item::bash_resist( bool to_self ) const
     int eff_thickness = 1;
 
     // Armor gets an additional multiplier.
-    if( is_armor() ) {
+    if( is_armor() || is_pet_armor() ) {
         // base resistance
         // Don't give reinforced items +armor, just more resistance to ripping
         const int dmg = damage_level( 4 );
@@ -4479,6 +4494,12 @@ const islot_armor *item::find_armor_data() const
         }
     }
     return nullptr;
+}
+
+bool item::is_pet_armor( bool on_pet ) const
+{
+    bool is_worn = on_pet && !get_var( "pet_armor", "" ).empty();
+    return has_flag( "IS_PET_ARMOR" ) && ( is_worn || !on_pet );
 }
 
 bool item::is_armor() const
@@ -5295,6 +5316,22 @@ std::set<std::string> item::ammo_effects( bool with_ammo ) const
     }
 
     return res;
+}
+
+std::string item::ammo_sort_name() const
+{
+    if( is_magazine() || is_gun() || is_tool() ) {
+        return ammo_type()->name();
+    }
+    if( is_ammo() ) {
+        return enumerate_as_string( type->ammo->type.begin(),
+                                    type->ammo->type.end(),
+        []( const ammotype & e ) {
+            return e->name();
+        },
+        enumeration_conjunction::none );
+    }
+    return "";
 }
 
 bool item::magazine_integral() const
@@ -6295,7 +6332,7 @@ void item::fill_with( item &liquid, long amount )
             return;
         }
         ammo_set( liquid.typeId(), ammo_remaining() + amount );
-    } else if( !is_container_empty() ) {
+    } else if( is_food_container() ) {
         // if container already has liquid we need to sum the energy
         item &cts = contents.front();
         const float lhs_energy = cts.get_item_thermal_energy();
@@ -6306,6 +6343,10 @@ void item::fill_with( item &liquid, long amount )
         //use maximum rot between the two
         cts.set_relative_rot( std::max( cts.get_relative_rot(),
                                         liquid.get_relative_rot() ) );
+        cts.mod_charges( amount );
+    } else if( !is_container_empty() ) {
+        // if container already has liquid we need to set the amount
+        item &cts = contents.front();
         cts.mod_charges( amount );
     } else {
         item liquid_copy( liquid );
