@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "basecamp.h"
 #include "game_constants.h"
 #include "monster.h"
 #include "omdata.h"
@@ -19,6 +20,7 @@
 #include "regional_settings.h"
 #include "weighted_list.h"
 
+class basecamp;
 class input_context;
 class JsonObject;
 class npc;
@@ -248,9 +250,10 @@ class overmap
         // TODO: make private
         std::vector<radio_tower> radios;
         std::map<int, om_vehicle> vehicles;
+        std::vector<basecamp *> camps;
         std::vector<city> cities;
         std::vector<city> roads_out;
-
+        cata::optional<basecamp *> find_camp( const int x, const int y ) const;
         /// Adds the npc to the contained list of npcs ( @ref npcs ).
         void insert_npc( std::shared_ptr<npc> who );
         /// Removes the npc and returns it ( or returns nullptr if not found ).
@@ -291,6 +294,7 @@ class overmap
         void init_layers();
         // open existing overmap, or generate a new one
         void open( overmap_special_batch &enabled_specials );
+        bool has_endgame() const;
     public:
 
         /**
@@ -349,6 +353,7 @@ class overmap
         bool build_slimepit( int x, int y, int z, int s );
         void build_mine( int x, int y, int z, int s );
         void place_rifts( const int z );
+        void place_endgame();
 
         // Connection laying
         pf::path lay_out_connection( const overmap_connection &connection, const point &source,

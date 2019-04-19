@@ -193,10 +193,10 @@ void computer::use()
             ctxt.register_manual_key( '1' + i, options[i].name.c_str() );
 #endif
         }
-        print_line( "Q - %s", _( "Quit and shut down" ) );
+        print_line( "Q - %s", _( "Quit and Shut Down" ) );
         print_newline();
 #ifdef __ANDROID__
-        ctxt.register_manual_key( 'Q', _( "Quit and shut down" ) );
+        ctxt.register_manual_key( 'Q', _( "Quit and Shut Down" ) );
 #endif
         char ch;
         do {
@@ -783,7 +783,7 @@ know that's sort of a big deal, but come on, these guys can't handle it?\n" ) );
             reset_terminal();
             print_line( _( "\
 SITE %d%d%d\n\
-PERTINANT FOREMAN LOGS WILL BE PREPENDED TO NOTES" ),
+PERTINENT FOREMAN LOGS WILL BE PREPENDED TO NOTES" ),
                         g->get_levx(), g->get_levy(), abs( g->get_levz() ) );
             print_line( _( "\n\
 MINE OPERATIONS SUSPENDED; CONTROL TRANSFERRED TO AMIGARA PROJECT UNDER\n\
@@ -792,7 +792,7 @@ FAULTLINE SOUNDING HAS PLACED DEPTH AT 30.09 KM\n\
 DAMAGE TO FAULTLINE DISCOVERED; NEPOWER MINE CREW PLACED UNDER ARREST FOR\n\
    VIOLATION OF REGULATION 87.08 AND TRANSFERRED TO LAB 89-C FOR USE AS\n\
    SUBJECTS\n\
-QUALITIY OF FAULTLINE NOT COMPROMISED\n\
+QUALITY OF FAULTLINE NOT COMPROMISED\n\
 INITIATING STANDARD TREMOR TEST..." ) );
             print_gibberish_line();
             print_gibberish_line();
@@ -990,13 +990,13 @@ SYSTEM ADMINISTRATOR TO RESOLVE THIS ISSUE.\n\
             print_line( _( "\
 GREETINGS CITIZEN. A BIOLOGICAL ATTACK HAS TAKEN PLACE AND A STATE OF \n\
 EMERGENCY HAS BEEN DECLARED. EMERGENCY PERSONNEL WILL BE AIDING YOU \n\
-SHORTLY. TO ENSURE YOUR SAFETY PLEASE FOLLOW THE BELOW STEPS. \n\
+SHORTLY. TO ENSURE YOUR SAFETY PLEASE FOLLOW THE STEPS BELOW. \n\
 \n\
 1. DO NOT PANIC. \n\
 2. REMAIN INSIDE THE BUILDING. \n\
 3. SEEK SHELTER IN THE BASEMENT. \n\
 4. USE PROVIDED GAS MASKS. \n\
-5. AWAIT FURTHER INSTRUCTIONS \n\
+5. AWAIT FURTHER INSTRUCTIONS. \n\
 \n\
   \n" ) );
             query_any( _( "Press any key to continue..." ) );
@@ -1258,6 +1258,24 @@ SHORTLY. TO ENSURE YOUR SAFETY PLEASE FOLLOW THE BELOW STEPS. \n\
                 }
             }
             query_any( _( "Press any key..." ) );
+            break;
+
+        case COMPACT_CLOSE_PORTAL:
+            bool found = false;
+            for( int x = 0; x < SEEX * MAPSIZE_X; x++ ) {
+                for( int y = 0; y < SEEY * MAPSIZE_Y; y++ ) {
+                    tripoint p{ x, y, g->u.posz() };
+                    if( g->m.ter( p ) == ter_id( "t_portal_endgame" ) ) {
+                        found = true;
+                        g->m.ter_set( p, t_thconc_floor );
+                    }
+                }
+            }
+            if( found ) {
+                g->victory();
+            } else {
+                query_any( _( "Error: No active portal system within range" ) );
+            }
             break;
 
     } // switch (action)
@@ -1687,7 +1705,8 @@ computer_action computer_action_from_string( const std::string &str )
             { "srcf_3_mess", COMPACT_SRCF_3_MESS },
             { "srcf_seal_order", COMPACT_SRCF_SEAL_ORDER },
             { "srcf_seal", COMPACT_SRCF_SEAL },
-            { "srcf_elevator", COMPACT_SRCF_ELEVATOR }
+            { "srcf_elevator", COMPACT_SRCF_ELEVATOR },
+            { "close_portal", COMPACT_CLOSE_PORTAL }
         }
     };
 
