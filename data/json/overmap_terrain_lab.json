@@ -281,7 +281,7 @@
     "type": "overmap_terrain",
     "id": "endgame_lab_finale",
     "name": "portal chamber",
-    "sym": 76,
+    "sym": "L",
     "color": "red",
     "see_cost": 5,
     "flags": [ "NO_ROTATE" ]
