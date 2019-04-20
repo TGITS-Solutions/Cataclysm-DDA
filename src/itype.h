@@ -74,7 +74,7 @@ class gun_modifier_data
             qty_( q ), flags_( f ) { }
         /// @returns The translated name of the gun mode.
         std::string name() const {
-            return _( name_.c_str() );
+            return _( name_ );
         }
         int qty() const {
             return qty_;
@@ -160,7 +160,7 @@ struct islot_comestible {
     /** Reference to item that will be received after smoking current item */
     itype_id smoking_result;
 
-    /** @todo: add documentation */
+    /** TODO: add documentation */
     int healthy = 0;
 
     /** chance (odds) of becoming parasitised when eating (zero if never occurs) */

@@ -86,8 +86,8 @@ void DynamicDataLoader::load_object( JsonObject &jo, const std::string &src,
                                      const std::string &base_path,
                                      const std::string &full_path )
 {
-    std::string type = jo.get_string( "type" );
-    t_type_function_map::iterator it = type_function_map.find( type );
+    const std::string type = jo.get_string( "type" );
+    const t_type_function_map::iterator it = type_function_map.find( type );
     if( it == type_function_map.end() ) {
         jo.throw_error( "unrecognized JSON object", "type" );
     }
@@ -117,7 +117,7 @@ void DynamicDataLoader::load_deferred( deferred_json &data )
                 discarded << elem.first;
             }
             debugmsg( "JSON contains circular dependency. Discarded %i objects:\n%s",
-                      data.size(), discarded.str().c_str() );
+                      data.size(), discarded.str() );
             data.clear();
             return; // made no progress on this cycle so abort
         }
@@ -496,7 +496,7 @@ void DynamicDataLoader::unload_data()
 void DynamicDataLoader::finalize_loaded_data()
 {
     // Create a dummy that will not display anything
-    // @todo: Make it print to stdout?
+    // TODO: Make it print to stdout?
     loading_ui ui( false );
     finalize_loaded_data( ui );
 }
@@ -545,6 +545,7 @@ void DynamicDataLoader::finalize_loaded_data( loading_ui &ui )
             { _( "Martial arts" ), &finialize_martial_arts },
             { _( "Constructions" ), &finalize_constructions },
             { _( "NPC classes" ), &npc_class::finalize_all },
+            { _( "Missions" ), &mission_type::finalize },
             { _( "Harvest lists" ), &harvest_list::finalize_all },
             { _( "Anatomies" ), &anatomy::finalize_all },
 #if defined(TILES)

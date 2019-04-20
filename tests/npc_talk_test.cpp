@@ -1,5 +1,6 @@
 #include <string>
 
+#include "bionics.h"
 #include "catch/catch.hpp"
 #include "calendar.h"
 #include "coordinate_conversions.h"
@@ -7,6 +8,7 @@
 #include "effect.h"
 #include "faction.h"
 #include "game.h"
+#include "item_category.h"
 #include "map.h"
 #include "mission.h"
 #include "npc.h"
@@ -385,6 +387,9 @@ TEST_CASE( "npc_talk_test" )
     trial_effect = trial_success ? chosen.success : chosen.failure;
     CHECK( trial_effect.next_topic.id == "TALK_TEST_FALSE_CONDITION_NEXT" );
 
+    g->u.remove_items_with( []( const item & it ) {
+        return it.get_category().id() == "books";
+    } );
     d.add_topic( "TALK_TEST_HAS_ITEM" );
     gen_response_lines( d, 1 );
     CHECK( d.responses[0].text == "This is a basic test response." );
@@ -479,13 +484,14 @@ TEST_CASE( "npc_talk_test" )
     CHECK( talker_npc.op_of_u.anger == 13 );
     CHECK( talker_npc.op_of_u.owed == 14 );
 
-
     d.add_topic( "TALK_TEST_HAS_ITEM" );
-    gen_response_lines( d, 4 );
+    gen_response_lines( d, 6 );
     CHECK( d.responses[0].text == "This is a basic test response." );
     CHECK( d.responses[1].text == "This is a u_has_item beer test response." );
     CHECK( d.responses[2].text == "This is a u_has_item bottle_glass test response." );
     CHECK( d.responses[3].text == "This is a u_has_items beer test response." );
+    CHECK( d.responses[4].text == "This is a u_has_item_category books test response." );
+    CHECK( d.responses[5].text == "This is a u_has_item_category books count 2 test response." );
 
     // test sell and consume
     d.add_topic( "TALK_TEST_EFFECTS" );
@@ -511,14 +517,52 @@ TEST_CASE( "npc_talk_test" )
     CHECK( !has_item( g->u, "beer", 1 ) );
 
     d.add_topic( "TALK_COMBAT_COMMANDS" );
-    gen_response_lines( d, 7 );
+    gen_response_lines( d, 9 );
     CHECK( d.responses[0].text == "Change your engagement rules..." );
     CHECK( d.responses[1].text == "Change your aiming rules..." );
-    CHECK( d.responses[2].text == "Don't use ranged weapons anymore." );
-    CHECK( d.responses[3].text == "Use only silent weapons." );
-    CHECK( d.responses[4].text == "Don't use grenades anymore." );
-    CHECK( d.responses[5].text == "Don't worry about shooting an ally." );
-    CHECK( d.responses[6].text == "Never mind." );
+    CHECK( d.responses[2].text == "If you see me running away, you follow me." );
+    CHECK( d.responses[3].text == "Don't use ranged weapons anymore." );
+    CHECK( d.responses[4].text == "Use only silent weapons." );
+    CHECK( d.responses[5].text == "Don't use grenades anymore." );
+    CHECK( d.responses[6].text == "Don't worry about shooting an ally." );
+    CHECK( d.responses[7].text == "Hold the line: don't move onto obstacles adjacent to me." );
+    CHECK( d.responses[8].text == "Never mind." );
+
+    d.add_topic( "TALK_TEST_VARS" );
+    gen_response_lines( d, 3 );
+    CHECK( d.responses[0].text == "This is a basic test response." );
+    CHECK( d.responses[1].text == "This is a u_add_var test response." );
+    CHECK( d.responses[2].text == "This is a npc_add_var test response." );
+    effects = d.responses[1].success;
+    effects.apply( d );
+    effects = d.responses[2].success;
+    effects.apply( d );
+    gen_response_lines( d, 5 );
+    CHECK( d.responses[0].text == "This is a basic test response." );
+    CHECK( d.responses[1].text == "This is a u_add_var test response." );
+    CHECK( d.responses[2].text == "This is a npc_add_var test response." );
+    CHECK( d.responses[3].text == "This is a u_has_var, u_remove_var test response." );
+    CHECK( d.responses[4].text == "This is a npc_has_var, npc_remove_var test response." );
+    effects = d.responses[3].success;
+    effects.apply( d );
+    effects = d.responses[4].success;
+    effects.apply( d );
+    gen_response_lines( d, 3 );
+    CHECK( d.responses[0].text == "This is a basic test response." );
+    CHECK( d.responses[1].text == "This is a u_add_var test response." );
+    CHECK( d.responses[2].text == "This is a npc_add_var test response." );
+
+    g->u.clear_bionics();
+    talker_npc.clear_bionics();
+    d.add_topic( "TALK_TEST_BIONICS" );
+    gen_response_lines( d, 1 );
+    CHECK( d.responses[0].text == "This is a basic test response." );
+    g->u.add_bionic( bionic_id( "bio_ads" ) );
+    talker_npc.add_bionic( bionic_id( "bio_power_storage" ) );
+    gen_response_lines( d, 3 );
+    CHECK( d.responses[0].text == "This is a basic test response." );
+    CHECK( d.responses[1].text == "This is a u_has_bionics bio_ads test response." );
+    CHECK( d.responses[2].text == "This is a npc_has_bionics ANY response." );
 
     // test change class
     REQUIRE( talker_npc.myclass == npc_class_id( "NC_TEST_CLASS" ) );
