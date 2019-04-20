@@ -38,7 +38,7 @@ void activity_type::load( JsonObject &jo )
 
     result.id_ = activity_id( jo.get_string( "id" ) );
     assign( jo, "rooted", result.rooted_, true );
-    result.stop_phrase_ = _( jo.get_string( "stop_phrase" ).c_str() );
+    result.stop_phrase_ = _( jo.get_string( "stop_phrase" ) );
     assign( jo, "suspendable", result.suspendable_, true );
     assign( jo, "no_resume", result.no_resume_, true );
     assign (jo, "atomic", result.atomic_, false );
@@ -104,4 +104,3 @@ void activity_type::reset()
 {
     activity_type_all.clear();
 }
-

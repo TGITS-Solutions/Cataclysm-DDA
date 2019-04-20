@@ -109,7 +109,7 @@ void character_edit_menu()
         if( np->has_destination() ) {
             data << string_format( _( "Destination: %d:%d:%d (%s)" ),
                                    np->goal.x, np->goal.y, np->goal.z,
-                                   overmap_buffer.ter( np->goal )->get_name().c_str() ) << std::endl;
+                                   overmap_buffer.ter( np->goal )->get_name() ) << std::endl;
         } else {
             data << _( "No destination." ) << std::endl;
         }
@@ -119,10 +119,11 @@ void character_edit_menu()
              << string_format( _( "Anger: %d" ), np->op_of_u.anger ) << " "
              << string_format( _( "Owed: %d" ), np->op_of_u.owed ) << std::endl;
 
-        data << string_format( _( "Aggression: %d" ), int( np->personality.aggression ) ) << " "
-             << string_format( _( "Bravery: %d" ), int( np->personality.bravery ) ) << " "
-             << string_format( _( "Collector: %d" ), int( np->personality.collector ) ) << " "
-             << string_format( _( "Altruism: %d" ), int( np->personality.altruism ) ) << std::endl;
+        data << string_format( _( "Aggression: %d" ),
+                               static_cast<int>( np->personality.aggression ) ) << " "
+             << string_format( _( "Bravery: %d" ), static_cast<int>( np->personality.bravery ) ) << " "
+             << string_format( _( "Collector: %d" ), static_cast<int>( np->personality.collector ) ) << " "
+             << string_format( _( "Altruism: %d" ), static_cast<int>( np->personality.altruism ) ) << std::endl;
 
         data << _( "Needs:" ) << std::endl;
         for( const auto &need : np->needs ) {
@@ -299,14 +300,15 @@ void character_edit_menu()
         case D_NEEDS: {
             uilist smenu;
             smenu.addentry( 0, true, 'h', "%s: %d", _( "Hunger" ), p.get_hunger() );
-            smenu.addentry( 1, true, 's', "%s: %d", _( "Starvation" ), p.get_starvation() );
+            smenu.addentry( 1, true, 's', "%s: %d", _( "Stored kCal" ), p.get_stored_kcal() );
             smenu.addentry( 2, true, 't', "%s: %d", _( "Thirst" ), p.get_thirst() );
             smenu.addentry( 3, true, 'f', "%s: %d", _( "Fatigue" ), p.get_fatigue() );
             smenu.addentry( 4, true, 'd', "%s: %d", _( "Sleep Deprivation" ), p.get_sleep_deprivation() );
+            smenu.addentry( 5, true, 'a', _( "Reset all basic needs" ) );
 
             const auto &vits = vitamin::all();
             for( const auto &v : vits ) {
-                smenu.addentry( -1, true, 0, "%s: %d", v.second.name().c_str(), p.vitamin_get( v.first ) );
+                smenu.addentry( -1, true, 0, "%s: %d", v.second.name(), p.vitamin_get( v.first ) );
             }
 
             smenu.query();
@@ -319,8 +321,8 @@ void character_edit_menu()
                     break;
 
                 case 1:
-                    if( query_int( value, _( "Set starvation to? Currently: %d" ), p.get_starvation() ) ) {
-                        p.set_starvation( value );
+                    if( query_int( value, _( "Set stored kCal to? Currently: %d" ), p.get_stored_kcal() ) ) {
+                        p.set_stored_kcal( value );
                     }
                     break;
 
@@ -342,12 +344,19 @@ void character_edit_menu()
                         p.set_sleep_deprivation( value );
                     }
                     break;
-
+                case 5:
+                    p.initialize_stomach_contents();
+                    p.set_hunger( 0 );
+                    p.set_thirst( 0 );
+                    p.set_fatigue( 0 );
+                    p.set_sleep_deprivation( 0 );
+                    p.set_stored_kcal( p.get_healthy_kcal() );
+                    break;
                 default:
-                    if( smenu.ret > 3 && smenu.ret < static_cast<int>( vits.size() + 4 ) ) {
-                        auto iter = std::next( vits.begin(), smenu.ret - 4 );
+                    if( smenu.ret >= 5 && smenu.ret < static_cast<int>( vits.size() + 5 ) ) {
+                        auto iter = std::next( vits.begin(), smenu.ret - 5 );
                         if( query_int( value, _( "Set %s to? Currently: %d" ),
-                                       iter->second.name().c_str(), p.vitamin_get( iter->first ) ) ) {
+                                       iter->second.name(), p.vitamin_get( iter->first ) ) ) {
                             p.vitamin_set( iter->first, value );
                         }
                     }
@@ -597,10 +606,10 @@ void mission_debug::remove_mission( mission &m )
     const auto giver = g->find_npc( m.npc_id );
     if( giver != nullptr ) {
         if( remove_from_vec( giver->chatbin.missions_assigned, &m ) ) {
-            add_msg( _( "Removing from %s missions_assigned" ), giver->name.c_str() );
+            add_msg( _( "Removing from %s missions_assigned" ), giver->name );
         }
         if( remove_from_vec( giver->chatbin.missions, &m ) ) {
-            add_msg( _( "Removing from %s missions" ), giver->name.c_str() );
+            add_msg( _( "Removing from %s missions" ), giver->name );
         }
     }
 }
@@ -652,17 +661,17 @@ void draw_benchmark( const int max_difference )
                                "\n| USE_TILES |  RENDERER | FRAMEBUFFER_ACCEL | USE_COLOR_MODULATED_TEXTURES | FPS |" <<
                                "\n|:---:|:---:|:---:|:---:|:---:|\n| " <<
                                get_option<bool>( "USE_TILES" ) << " | " <<
-#ifndef __ANDROID__
+#if !defined(__ANDROID__)
                                get_option<std::string>( "RENDERER" ) << " | " <<
 #else
                                get_option<bool>( "SOFTWARE_RENDERING" ) << " | " <<
 #endif
                                get_option<bool>( "FRAMEBUFFER_ACCEL" ) << " | " <<
                                get_option<bool>( "USE_COLOR_MODULATED_TEXTURES" ) << " | " <<
-                               int( 1000.0 * draw_counter / ( double )difference ) << " |\n";
+                               static_cast<int>( 1000.0 * draw_counter / static_cast<double>( difference ) ) << " |\n";
 
     add_msg( m_info, _( "Drew %d times in %.3f seconds. (%.3f fps average)" ), draw_counter,
-             difference / 1000.0, 1000.0 * draw_counter / ( double )difference );
+             difference / 1000.0, 1000.0 * draw_counter / static_cast<double>( difference ) );
 }
 
 }
